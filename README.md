@@ -24,6 +24,8 @@ The default build is an optimized release build. Optional modes are `--verify`, 
 
 While a video is playing, use the menu-bar player button in the toolbar or press `⌥⌘M`. MeTube hides its main window and moves the same live player into a menu-bar popover, so playback continues when the popover is closed. Choose **Detach** for a movable, resizable, always-on-top PiP-style panel; choose **Attach to Menu Bar** to dock it back into the popover, or **Main Window** to restore the normal app window.
 
+Open **MeTube → Settings…** (`⌘,`) to choose whether clicking outside closes the menu-bar popover or whether it stays open until you click its menu-bar button again.
+
 ## Design choices
 
 - WebKit content rules compile to efficient bytecode and run in the networking/content pipeline.

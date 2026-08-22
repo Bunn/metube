@@ -30,9 +30,16 @@ final class MenuBarMiniPlayer: NSObject, NSWindowDelegate {
         playerViewController.attach(webView)
 
         popover.animates = false
-        popover.behavior = .transient
+        updatePopoverBehavior()
         popover.contentViewController = playerViewController
         popover.contentSize = Self.playerSize
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(userDefaultsDidChange(_:)),
+            name: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard
+        )
 
         if let button = statusItem.button {
             let image = NSImage(
@@ -63,6 +70,11 @@ final class MenuBarMiniPlayer: NSObject, NSWindowDelegate {
         floatingPanel?.contentViewController = nil
         floatingPanel = nil
         popover.contentViewController = nil
+        NotificationCenter.default.removeObserver(
+            self,
+            name: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard
+        )
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
@@ -118,7 +130,21 @@ final class MenuBarMiniPlayer: NSObject, NSWindowDelegate {
     }
 
     private func showPopover(relativeTo button: NSStatusBarButton) {
+        updatePopoverBehavior()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    }
+
+    private func updatePopoverBehavior() {
+        switch MenuBarPopoverDismissalMode.current() {
+        case .closeWhenClickingOutside:
+            popover.behavior = .transient
+        case .menuBarButtonOnly:
+            popover.behavior = .applicationDefined
+        }
+    }
+
+    @objc private func userDefaultsDidChange(_ notification: Notification) {
+        updatePopoverBehavior()
     }
 
     private func makeFloatingPanel() -> NSPanel {

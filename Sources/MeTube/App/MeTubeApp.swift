@@ -13,5 +13,9 @@ struct MeTubeApp: App {
             CommandGroup(replacing: .newItem) {}
             BrowserCommands()
         }
+
+        Settings {
+            SettingsView()
+        }
     }
 }
