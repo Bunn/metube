@@ -1,12 +1,12 @@
-import AppKit
 import Combine
 import Foundation
 import OSLog
+import UIKit
 import WebKit
 
 @MainActor
-final class BrowserController: NSObject, ObservableObject {
-    private static let logger = Logger(subsystem: "dev.bunn.metube", category: "Browser")
+final class MobileBrowserController: NSObject, ObservableObject {
+    private static let logger = Logger(subsystem: "dev.bunn.metube", category: "MobileBrowser")
 
     @Published private(set) var title = "MeTube"
     @Published private(set) var addressText = ""
@@ -18,8 +18,6 @@ final class BrowserController: NSObject, ObservableObject {
     @Published private(set) var protectionSummary = "Preparing protection…"
     @Published private(set) var statusMessage: String?
     @Published private(set) var addressFocusRequest = 0
-    @Published private(set) var canMoveVideoToMenuBar = false
-    @Published private(set) var isVideoInMenuBar = false
 
     let webView: WKWebView
 
@@ -27,9 +25,6 @@ final class BrowserController: NSObject, ObservableObject {
     private var observations = [NSKeyValueObservation]()
     private var activeVideoID: String?
     private var playbackExperience = PlaybackExperience.current()
-    private weak var mainWebViewHost: BrowserWebViewHost?
-    private weak var mainWindow: NSWindow?
-    private var menuBarMiniPlayer: MenuBarMiniPlayer?
 
     private static let youtubeHomeURL: URL = {
         guard let url = URL(string: "https://m.youtube.com") else {
@@ -48,8 +43,10 @@ final class BrowserController: NSObject, ObservableObject {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         configuration.preferences.isElementFullscreenEnabled = true
+        configuration.allowsInlineMediaPlayback = true
+        configuration.allowsPictureInPictureMediaPlayback = true
+        configuration.allowsAirPlayForMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
-        configuration.allowsAirPlayForMediaPlayback = false
 
         self.userContentController = userContentController
         self.webView = WKWebView(frame: .zero, configuration: configuration)
@@ -58,12 +55,12 @@ final class BrowserController: NSObject, ObservableObject {
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
-        webView.allowsLinkPreview = false
-        webView.allowsMagnification = true
+        webView.allowsLinkPreview = true
+        webView.scrollView.keyboardDismissMode = .onDrag
         webView.underPageBackgroundColor = .black
 
         #if DEBUG
-        if #available(macOS 13.3, *) {
+        if #available(iOS 16.4, *) {
             webView.isInspectable = true
         }
         #endif
@@ -115,8 +112,7 @@ final class BrowserController: NSObject, ObservableObject {
 
         if activeVideoID != nil,
            let destination = webView.backForwardList.backList.reversed().first(where: {
-               guard let url = $0.url as URL? else { return false }
-               return YouTubeURLParser.video(from: url) == nil
+               YouTubeURLParser.video(from: $0.url) == nil
            }) {
             activeVideoID = nil
             webView.go(to: destination)
@@ -140,53 +136,16 @@ final class BrowserController: NSObject, ObservableObject {
         }
     }
 
-    func stopLoading() {
-        webView.stopLoading()
-    }
-
     func stopOrReload() {
-        isLoading ? stopLoading() : reload()
+        if isLoading {
+            webView.stopLoading()
+        } else {
+            reload()
+        }
     }
 
     func requestAddressFocus() {
         addressFocusRequest &+= 1
-    }
-
-    func installMainWebView(in host: BrowserWebViewHost) {
-        mainWebViewHost = host
-        guard !isVideoInMenuBar else { return }
-        host.attach(webView)
-    }
-
-    func moveVideoToMenuBar() {
-        guard canMoveVideoToMenuBar, !isVideoInMenuBar else { return }
-        guard let window = mainWebViewHost?.window ?? webView.window else {
-            statusMessage = "The video could not be moved because its window is unavailable."
-            return
-        }
-
-        mainWindow = window
-        menuBarMiniPlayer = MenuBarMiniPlayer(browser: self, webView: webView)
-        window.orderOut(nil)
-        isVideoInMenuBar = true
-        Self.logger.info("Moved the active video to the menu bar")
-    }
-
-    func restoreVideoFromMenuBar() {
-        guard isVideoInMenuBar else { return }
-
-        menuBarMiniPlayer?.closePopover()
-        mainWebViewHost?.attach(webView)
-        isVideoInMenuBar = false
-
-        menuBarMiniPlayer?.invalidate()
-        menuBarMiniPlayer = nil
-
-        if let window = mainWindow ?? mainWebViewHost?.window {
-            window.makeKeyAndOrderFront(nil)
-        }
-        NSApp.activate(ignoringOtherApps: true)
-        Self.logger.info("Returned the active video to the main window")
     }
 
     private func prepareProtection() {
@@ -198,33 +157,10 @@ final class BrowserController: NSObject, ObservableObject {
                 Self.logger.info("Compiled content protection is active")
             } catch {
                 protectionSummary = "Script protection active"
-                statusMessage = "The compiled network rules could not load; response filtering is still active."
-                let nsError = error as NSError
-                Self.logger.error(
-                    "Content rule installation failed (\(nsError.code)): \(String(describing: nsError.userInfo), privacy: .public)"
-                )
+                statusMessage = "Compiled network rules could not load; response filtering is still active."
+                Self.logger.error("Content rule installation failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-    }
-
-    private func loadBrowsePage(_ url: URL) {
-        activeVideoID = nil
-        canMoveVideoToMenuBar = false
-        hasLoadedContent = true
-        addressText = url.absoluteString
-        webView.load(URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 30))
-    }
-
-    private func loadPlayer(_ video: YouTubeVideo) {
-        activeVideoID = video.id
-        canMoveVideoToMenuBar = true
-        hasLoadedContent = true
-        addressText = video.canonicalURL.absoluteString
-        title = "MeTube Player"
-
-        var request = URLRequest(url: video.embedURL)
-        request.setValue("http://localhost/", forHTTPHeaderField: "Referer")
-        webView.loadSimulatedRequest(request, responseHTML: PlayerPage.html(for: video))
     }
 
     private func openVideo(_ video: YouTubeVideo) {
@@ -234,6 +170,24 @@ final class BrowserController: NSObject, ObservableObject {
         case .fullYouTubePage:
             loadBrowsePage(video.canonicalURL)
         }
+    }
+
+    private func loadBrowsePage(_ url: URL) {
+        activeVideoID = nil
+        hasLoadedContent = true
+        addressText = url.absoluteString
+        webView.load(URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 30))
+    }
+
+    private func loadPlayer(_ video: YouTubeVideo) {
+        activeVideoID = video.id
+        hasLoadedContent = true
+        addressText = video.canonicalURL.absoluteString
+        title = "MeTube Player"
+
+        var request = URLRequest(url: video.embedURL)
+        request.setValue("http://localhost/", forHTTPHeaderField: "Referer")
+        webView.loadSimulatedRequest(request, responseHTML: PlayerPage.html(for: video))
     }
 
     private func installObservations() {
@@ -284,7 +238,6 @@ final class BrowserController: NSObject, ObservableObject {
         if let video = YouTubeURLParser.video(from: url) {
             if playbackExperience == .fullYouTubePage {
                 activeVideoID = nil
-                canMoveVideoToMenuBar = false
                 hasLoadedContent = true
                 addressText = video.canonicalURL.absoluteString
                 return
@@ -299,7 +252,6 @@ final class BrowserController: NSObject, ObservableObject {
             openVideo(video)
         } else {
             activeVideoID = nil
-            canMoveVideoToMenuBar = false
             addressText = url.absoluteString
         }
     }
@@ -310,10 +262,6 @@ final class BrowserController: NSObject, ObservableObject {
 
         playbackExperience = updatedExperience
         guard let video = currentVideo else { return }
-
-        if isVideoInMenuBar {
-            restoreVideoFromMenuBar()
-        }
         openVideo(video)
     }
 
@@ -326,9 +274,16 @@ final class BrowserController: NSObject, ObservableObject {
         }
         return YouTubeURLParser.video(fromUserInput: addressText)
     }
+
+    private func reportNavigationError(_ error: Error) {
+        let nsError = error as NSError
+        guard nsError.code != NSURLErrorCancelled else { return }
+        statusMessage = nsError.localizedDescription
+        Self.logger.error("Navigation failed: \(nsError.localizedDescription, privacy: .public)")
+    }
 }
 
-extension BrowserController: WKNavigationDelegate {
+extension MobileBrowserController: WKNavigationDelegate {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
@@ -389,16 +344,9 @@ extension BrowserController: WKNavigationDelegate {
         statusMessage = "The web content process restarted to recover memory. Reloading…"
         reload()
     }
-
-    private func reportNavigationError(_ error: Error) {
-        let nsError = error as NSError
-        guard nsError.code != NSURLErrorCancelled else { return }
-        Self.logger.error("Navigation failed: \(nsError.localizedDescription, privacy: .public)")
-        statusMessage = nsError.localizedDescription
-    }
 }
 
-extension BrowserController: WKUIDelegate {
+extension MobileBrowserController: WKUIDelegate {
     func webView(
         _ webView: WKWebView,
         createWebViewWith configuration: WKWebViewConfiguration,

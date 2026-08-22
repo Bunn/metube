@@ -11,7 +11,9 @@ DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
+APP_ICON="$APP_RESOURCES/$APP_NAME.icns"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
@@ -25,8 +27,9 @@ if [[ "$APP_BUNDLE" != "$ROOT_DIR/dist/MeTube.app" ]]; then
 fi
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES"
 cp "$BUILD_BINARY" "$APP_BINARY"
+cp "$ROOT_DIR/Assets/MeTube.icns" "$APP_ICON"
 cp "$ROOT_DIR/Packaging/Info.plist" "$INFO_PLIST"
 chmod +x "$APP_BINARY"
 

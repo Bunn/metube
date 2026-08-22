@@ -10,6 +10,8 @@
     <string>MeTube</string>
     <key>CFBundleIdentifier</key>
     <string>dev.bunn.metube</string>
+    <key>CFBundleIconFile</key>
+    <string>MeTube</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>

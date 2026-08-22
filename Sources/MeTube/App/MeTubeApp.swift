@@ -8,6 +8,7 @@ struct MeTubeApp: App {
         WindowGroup("MeTube") {
             ContentView()
         }
+        .windowToolbarStyle(.unifiedCompact(showsTitle: false))
         .defaultSize(width: 1_100, height: 720)
         .commands {
             CommandGroup(replacing: .newItem) {}

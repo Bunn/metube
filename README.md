@@ -1,12 +1,12 @@
 # MeTube
 
-MeTube is a small native macOS YouTube viewer designed for older Intel Macs. It uses one `WKWebView`, a native SwiftUI toolbar, and no third-party runtime dependencies.
+MeTube is a small native macOS YouTube viewer designed for older Intel Macs. It uses one `WKWebView`, a native macOS browser toolbar, and no third-party runtime dependencies.
 
 ## How playback works
 
 1. Launch stays on a native start screen; no YouTube renderer is created until it is needed.
 2. Optional browsing and search use YouTube's lighter mobile site.
-3. YouTube watch, Shorts, live, and `youtu.be` links are intercepted before the full watch page loads.
+3. In the default optimized mode, YouTube watch, Shorts, live, and `youtu.be` links are intercepted before the full watch page loads.
 4. Playback moves into a small local HTML shell whose visible request is a `youtube-nocookie.com/embed` URL, following the core DuckPlayer design in the neighboring `apple-browsers` repository.
 5. WebKit applies a compiled request rule list, page-world response pruning, cosmetic hiding, and a lightweight ad-skip fallback.
 
@@ -24,7 +24,15 @@ The default build is an optimized release build. Optional modes are `--verify`, 
 
 While a video is playing, use the menu-bar player button in the toolbar or press `⌥⌘M`. MeTube hides its main window and moves the same live player into a menu-bar popover, so playback continues when the popover is closed. Choose **Detach** for a movable, resizable, always-on-top PiP-style panel; choose **Attach to Menu Bar** to dock it back into the popover, or **Main Window** to restore the normal app window.
 
-Open **MeTube → Settings…** (`⌘,`) to choose whether clicking outside closes the menu-bar popover or whether it stays open until you click its menu-bar button again.
+Open **MeTube → Settings…** (`⌘,`) to configure the auto-hiding browser toolbar, choose how the menu-bar popover dismisses, and change playback mode. **Optimized player** minimizes CPU and memory use. **Full YouTube page** loads the normal watch page—including comments and recommendations—at a higher resource cost.
+
+The browser toolbar reveals itself whenever the pointer moves and collapses after the configured idle delay. YouTube's player fullscreen button is supported in both playback modes.
+
+## iPhone and iPad
+
+Open `iOS/MeTube-iOS.xcodeproj` in Xcode, select the **MeTube-iOS** scheme, and run it on an iPhone or iPad running iOS 17 or later. The iOS app uses the same YouTube URL parser, optimized player, full-page comments mode, and protection engine as the Mac app. Its native bottom browser controls stay outside the web content, and WebKit is configured for inline playback, system fullscreen, Picture in Picture, and AirPlay.
+
+The iOS target uses the bundle identifier `dev.bunn.metube`. Signing remains automatic, so choose your development team in Xcode before installing it on a physical device.
 
 ## Design choices
 
@@ -32,7 +40,7 @@ Open **MeTube → Settings…** (`⌘,`) to choose whether clicking outside clos
 - A single-site curated ruleset avoids shipping a large general-purpose filter engine and thousands of irrelevant filters.
 - One persistent web view preserves YouTube cookies while avoiding a tab/process manager.
 - The menu-bar mini player reparents that same web view instead of starting another stream or reloading the video.
-- Playback uses the privacy-enhanced embed surface instead of YouTube's much heavier desktop watch page.
+- Optimized playback uses the privacy-enhanced embed surface instead of YouTube's much heavier desktop watch page; full-page playback is available when comments are more important than efficiency.
 - No polling loop scans the whole DOM; the fallback observes only the player class while an ad is showing.
 
 ## Research sources
