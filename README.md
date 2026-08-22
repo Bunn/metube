@@ -22,7 +22,7 @@ Requires macOS 13 or newer and Xcode command-line tools.
 
 The default build is an optimized release build. Optional modes are `--verify`, `--debug`, `--logs`, and `--telemetry`. The staged app is written to `dist/MeTube.app`.
 
-While a video is playing, use the menu-bar player button in the toolbar or press `⌥⌘M`. MeTube hides its main window and moves the same live player into a menu-bar popover, so playback continues when the popover is closed. Choose **Return to Window** in the popover to restore the normal app window.
+While a video is playing, use the menu-bar player button in the toolbar or press `⌥⌘M`. MeTube hides its main window and moves the same live player into a menu-bar popover, so playback continues when the popover is closed. Choose **Detach** for a movable, resizable, always-on-top PiP-style panel; choose **Attach to Menu Bar** to dock it back into the popover, or **Main Window** to restore the normal app window.
 
 ## Design choices
 
