@@ -55,6 +55,7 @@ final class BrowserController: NSObject, ObservableObject {
         self.webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
 
+        webView.customUserAgent = SafariUserAgent.currentMacOS
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true

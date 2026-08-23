@@ -3,12 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage(NavigationBarPreferences.autoHideKey)
-    private var automaticallyHideNavigationBar = NavigationBarPreferences.defaultAutoHide
-    @AppStorage(NavigationBarPreferences.autoHideDelayKey)
-    private var navigationBarAutoHideDelay = NavigationBarPreferences.defaultAutoHideDelay
     @StateObject private var browser = BrowserController()
-    @StateObject private var navigationBarVisibility = NavigationBarVisibilityController()
     @State private var addressInput = ""
     @FocusState private var isAddressFocused: Bool
 
@@ -24,8 +19,6 @@ struct ContentView: View {
                 )
             }
 
-            MouseActivityView(onActivity: navigationBarVisibility.recordPointerActivity)
-
             if browser.isLoading {
                 ProgressView(value: browser.progress)
                     .progressViewStyle(.linear)
@@ -37,9 +30,6 @@ struct ContentView: View {
                     .padding(.top, 12)
                     .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
             }
-
-            WindowToolbarVisibilityView(isVisible: navigationBarVisibility.isVisible)
-                .frame(width: 0, height: 0)
         }
         .frame(minWidth: 720, minHeight: 480)
         .navigationTitle(browser.title)
@@ -93,33 +83,17 @@ struct ContentView: View {
             }
         }
         .focusedSceneValue(\.browserController, browser)
-        .onAppear(perform: configureNavigationBar)
         .onReceive(browser.$addressText) { address in
             guard !isAddressFocused else { return }
             addressInput = address
         }
         .onReceive(browser.$addressFocusRequest.dropFirst()) { _ in
-            navigationBarVisibility.reveal()
             addressInput = browser.addressText
             DispatchQueue.main.async {
                 isAddressFocused = true
             }
         }
-        .onChange(of: automaticallyHideNavigationBar) { _ in configureNavigationBar() }
-        .onChange(of: navigationBarAutoHideDelay) { _ in configureNavigationBar() }
-        .onChange(of: browser.hasLoadedContent) { _ in configureNavigationBar() }
-        .onChange(of: isAddressFocused) { _ in configureNavigationBar() }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: browser.statusMessage)
-    }
-
-    private func configureNavigationBar() {
-        navigationBarVisibility.configure(
-            autoHide: automaticallyHideNavigationBar,
-            delay: NavigationBarPreferences.supportedAutoHideDelays.contains(navigationBarAutoHideDelay)
-                ? navigationBarAutoHideDelay
-                : NavigationBarPreferences.defaultAutoHideDelay,
-            canHide: browser.hasLoadedContent && !isAddressFocused
-        )
     }
 
     private func submitAddress() {

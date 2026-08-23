@@ -1,10 +1,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage(NavigationBarPreferences.autoHideKey)
-    private var automaticallyHideNavigationBar = NavigationBarPreferences.defaultAutoHide
-    @AppStorage(NavigationBarPreferences.autoHideDelayKey)
-    private var navigationBarAutoHideDelay = NavigationBarPreferences.defaultAutoHideDelay
     @AppStorage(MenuBarPopoverDismissalMode.storageKey)
     private var dismissalMode = MenuBarPopoverDismissalMode.defaultValue.rawValue
     @AppStorage(PlaybackExperience.storageKey)
@@ -13,17 +9,6 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             Form {
-                Section("Navigation") {
-                    Toggle("Automatically hide the browser toolbar", isOn: $automaticallyHideNavigationBar)
-
-                    Picker("Hide after", selection: $navigationBarAutoHideDelay) {
-                        ForEach(NavigationBarPreferences.supportedAutoHideDelays, id: \.self) { delay in
-                            Text("\(Int(delay)) seconds").tag(delay)
-                        }
-                    }
-                    .disabled(!automaticallyHideNavigationBar)
-                }
-
                 Section("Menu Bar Player") {
                     Picker("When the popover is open", selection: $dismissalMode) {
                         ForEach(MenuBarPopoverDismissalMode.allCases) { mode in

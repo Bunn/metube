@@ -24,9 +24,9 @@ The default build is an optimized release build. Optional modes are `--verify`, 
 
 While a video is playing, use the menu-bar player button in the toolbar or press `⌥⌘M`. MeTube hides its main window and moves the same live player into a menu-bar popover, so playback continues when the popover is closed. Choose **Detach** for a movable, resizable, always-on-top PiP-style panel; choose **Attach to Menu Bar** to dock it back into the popover, or **Main Window** to restore the normal app window.
 
-Open **MeTube → Settings…** (`⌘,`) to configure the auto-hiding browser toolbar, choose how the menu-bar popover dismisses, and change playback mode. **Optimized player** minimizes CPU and memory use. **Full YouTube page** loads the normal watch page—including comments and recommendations—at a higher resource cost.
+Open **MeTube → Settings…** (`⌘,`) to choose how the menu-bar popover dismisses and change playback mode. **Optimized player** minimizes CPU and memory use. **Full YouTube page** loads the normal watch page—including comments and recommendations—at a higher resource cost.
 
-The browser toolbar reveals itself whenever the pointer moves and collapses after the configured idle delay. YouTube's player fullscreen button is supported in both playback modes.
+The native browser toolbar remains in the title bar so WebKit's video surface never needs to resize in response to pointer movement. YouTube's player fullscreen button is supported in both playback modes.
 
 ## iPhone and iPad
 
@@ -39,6 +39,7 @@ The iOS target uses the bundle identifier `dev.bunn.metube`. Signing remains aut
 - WebKit content rules compile to efficient bytecode and run in the networking/content pipeline.
 - A single-site curated ruleset avoids shipping a large general-purpose filter engine and thousands of irrelevant filters.
 - One persistent web view preserves YouTube cookies while avoiding a tab/process manager.
+- The Mac web view identifies itself using the installed Safari major/minor version, with Safari 26 as a fallback.
 - The menu-bar mini player reparents that same web view instead of starting another stream or reloading the video.
 - Optimized playback uses the privacy-enhanced embed surface instead of YouTube's much heavier desktop watch page; full-page playback is available when comments are more important than efficiency.
 - No polling loop scans the whole DOM; the fallback observes only the player class while an ad is showing.
